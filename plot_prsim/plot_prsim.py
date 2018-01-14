@@ -8,23 +8,38 @@ class PRSIMPlotter(object):
     ----------
     fsim: string
         file containing PRSIM outputs
-    interact: boolean
-        whether to turn on matplotlib interactive
+    max_events: int or None
+        maximum number of events to read in 
+    ignore_timing: Boolean
+        whether to ignore the timing information in the data
+        if you only care about the transition sequence
     """
-    def __init__(self, fsim, interact=False):
+    def __init__(self, fsim, max_events=500, ignore_timing=False):
         self.signals = {}
         self.max_time = None
         self.plot_rowsize = 1.5
-        self.read_file(fsim)
-        if interact:
-            plt.ion()
+        self.read_file(fsim, max_events, ignore_timing)
 
-    def read_file(self, fsim):
-        """reads in a file of PRSIM results"""
+    def read_file(self, fsim, max_events=None, ignore_timing=False):
+        """Reads in a file of PRSIM results
+        
+        Parameters
+        ----------
+        fsim: string
+            file containing PRSIM outputs
+        max_events: int or None
+            maximum number of events to read in 
+        ignore_timing: Boolean
+            whether to ignore the timing information in the data
+            if you only care about the transition sequence
+        """
         with open(fsim, 'r') as fh:
             lines = fh.readlines()
             time = 0
+            n_events = 1
             for line in lines:
+                if max_events and n_events > max_events:
+                    break
                 tokens = line.strip().split(' ')
                 if len(tokens) > 0:
                     if tokens[0].isnumeric():
@@ -36,9 +51,16 @@ class PRSIMPlotter(object):
                                 "v0":value,
                                 "t0":time,
                                 "transitions":[]}
+                            if ignore_timing:
+                                self.signals[signal]["t0"] = n_events-1
                         else:
                             self.signals[signal]["transitions"].append(time)
+                            if ignore_timing:
+                                self.signals[signal]["transitions"][-1] = n_events-1
+                        n_events += 1
             self.max_time = time
+            if ignore_timing:
+                self.max_time = n_events
 
     def get_signals(self):
         """Get the signals available"""
@@ -67,8 +89,10 @@ class PRSIMPlotter(object):
         ax.set_yticks([0.5])
         ax.set_yticklabels([signal])
 
-    def plot_signals(self, signals):
-        """Plots the specified signals"""
+    def plot(self, signals=None):
+        """Plots available signals"""
+        if signals == None:
+            signals = sorted(self.get_signals())
         n_signals = len(signals)
         fig, axs = plt.subplots(
             nrows=n_signals,
@@ -78,11 +102,6 @@ class PRSIMPlotter(object):
             self.plot_signal(ax, signal)
         axs[0].set_xlim((0, self.max_time))
         return fig, axs
-
-
-    def plot(self):
-        """Plots all of the available"""
-        self.plot_signals(sorted(self.get_signals()))
 
     @staticmethod
     def show():
