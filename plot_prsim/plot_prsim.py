@@ -36,6 +36,8 @@ class PRSIMPlotter(object):
         with open(fsim, 'r') as fh:
             lines = fh.readlines()
             time = 0
+            prev_time = 0
+            n_unique_times = 0 # number of unique times stamps -1
             n_events = 1
             for line in lines:
                 if max_events and n_events > max_events:
@@ -44,6 +46,9 @@ class PRSIMPlotter(object):
                 if len(tokens) > 0:
                     if tokens[0].isnumeric():
                         time = int(tokens[0])
+                        if time > prev_time:
+                            n_unique_times += 1
+                            prev_time = time
                         signal = tokens[1]
                         if signal not in self.signals:
                             value = tokens[3]
@@ -52,15 +57,15 @@ class PRSIMPlotter(object):
                                 "t0":time,
                                 "transitions":[]}
                             if ignore_timing:
-                                self.signals[signal]["t0"] = n_events-1
+                                self.signals[signal]["t0"] = n_unique_times
                         else:
                             self.signals[signal]["transitions"].append(time)
                             if ignore_timing:
-                                self.signals[signal]["transitions"][-1] = n_events-1
+                                self.signals[signal]["transitions"][-1] = n_unique_times
                         n_events += 1
             self.max_time = time
             if ignore_timing:
-                self.max_time = n_events
+                self.max_time = n_unique_times
 
     def get_signals(self):
         """Get the signals available"""
