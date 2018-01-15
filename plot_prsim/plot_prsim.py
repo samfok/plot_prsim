@@ -90,12 +90,18 @@ class PRSIMPlotter(object):
         trace[-1] = trace[-2]
 
         ax.plot(time, trace)
-        ax.set_ylim((-0.1, 1.1))
-        ax.set_yticks([0.5])
-        ax.set_yticklabels([signal])
 
     def plot(self, signals=None):
-        """Plots available signals"""
+        """Plots available signals
+
+        Parameters
+        ----------
+        signals: list or None
+            if None, plots all signals
+            otherwise a list strings or list of list of strings
+            strings name signals
+            list of signals to be plotted on the same axis
+        """
         if signals == None:
             signals = sorted(self.get_signals())
         n_signals = len(signals)
@@ -104,11 +110,16 @@ class PRSIMPlotter(object):
             figsize=(8, self.plot_rowsize*n_signals),
             sharex=True)
         for ax, signal in zip(axs, signals):
-            self.plot_signal(ax, signal)
+            if isinstance(signal, str):
+                signal = [signal,]
+            for sig in signal:
+                self.plot_signal(ax, sig)
+            ax.set_ylim((-0.1, 1.1))
+            ax.set_yticks([0.5])
+            ax.set_yticklabels([signal])
         axs[0].set_xlim((0, self.max_time))
         return fig, axs
 
     @staticmethod
     def show():
         plt.show()
-
